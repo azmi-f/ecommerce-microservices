@@ -1,6 +1,20 @@
 version: "3.9"
 
 services:
+  traefik:
+    image: traefik:v2.10
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8081:8080" # dashboard Traefik
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - ecommerce
+
   user-service:
     build: ./user-service
     ports:
@@ -13,17 +27,81 @@ services:
       - DB_NAME=userdb
     depends_on:
       - db
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.user-service.rule=PathPrefix(`/users`)"
+      - "traefik.http.services.user-service.loadbalancer.server.port=3001"
+    networks:
+      - ecommerce
+
+  notification-service:
+    build: ./notification-service
+    ports:
+      - "3003:3003"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.notification-service.rule=PathPrefix(`/notify`)"
+      - "traefik.http.services.notification-service.loadbalancer.server.port=3003"
+    networks:
+      - ecommerce
 
   db:
     image: postgres:15
     restart: always
     environment:
+      POSTGRES_DB: userdb
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     volumes:
       - user-db-data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    networks:
+      - ecommerce
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8082:8080"
+    depends_on:
+      - db
+    networks:
+      - ecommerce
+
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - ecommerce
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    networks:
+      - ecommerce
+
+  cadvisor:
+    image: gcr.io/google-containers/cadvisor:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - ecommerce
 
 volumes:
   user-db-data:
+  grafana-storage:
+
+networks:
+  ecommerce:
