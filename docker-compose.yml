@@ -9,7 +9,7 @@ services:
       - "--entrypoints.web.address=:80"
     ports:
       - "80:80"
-      - "8081:8080" # dashboard Traefik
+      - "8081:8080"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
@@ -96,6 +96,20 @@ services:
       - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
+    networks:
+      - ecommerce
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - ecommerce
+
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "8025:8025"
     networks:
       - ecommerce
 
