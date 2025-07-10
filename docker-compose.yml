@@ -89,6 +89,7 @@ services:
 
   cadvisor:
     image: gcr.io/google-containers/cadvisor:latest
+    container_name: cadvisor
     ports:
       - "8080:8080"
     volumes:
@@ -96,6 +97,7 @@ services:
       - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
+    restart: always
     networks:
       - ecommerce
 
